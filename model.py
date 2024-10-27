@@ -1,10 +1,34 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
+from model import build_transformer
+from dataset import TranslationDataset, causal_mask
+from config import get_config, get_weights_file_path, latest_weights_file_path
+
+import torchtext.datasets as datasets
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader, random_split
+from torch.optim.lr_scheduler import LambdaLR
+
+import warnings
+from tqdm import tqdm
+import os
+from pathlib import Path
+
+# Huggingface datasets and tokenizers
+from datasets import load_dataset
+from tokenizers import Tokenizer
+from tokenizers.models import WordLevel
+from tokenizers.trainers import WordLevelTrainer
+from tokenizers.pre_tokenizers import Whitespace
+
+import torchmetrics
+from torch.utils.tensorboard import SummaryWriter
 
 class TranslationDataset(Dataset):
 
-    def __init__(self, ds, tokenizer_src, tokenizer_tgt, src_lang, tgt_lang, seq)
+    def __init__(self, ds, tokenizer_src, tokenizer_tgt, src_lang, tgt_lang, seq):
         super().__init__()
         
         self.seq = seq
@@ -62,8 +86,8 @@ class TranslationDataset(Dataset):
             "encoder_mask": (encoder_input != self.pad_token).unsqueeze(0).unsqueeze(0).int(), # (1, 1, seq)
             "decoder_mask": (decoder_input != self.pad_token).unsqueeze(0).int() & casual_mask(decoder_input.size(0)), # (1, seq) & (1, seq, seq)
             "label": label, # (seq)
-            "src_text"= src_text,
-            "tgt_text"= tgt_text,        
+            "src_text": src_text,
+            "tgt_text": tgt_text,        
         }
 
 def causal_mask(size):
@@ -105,30 +129,7 @@ def latest_weights_file_path(config):
     weights_files.sort()
     return str(weights_files[-1])
 
-from model import build_transformer
-from dataset import TranslationDataset, causal_mask
-from config import get_config, get_weights_file_path, latest_weights_file_path
 
-import torchtext.datasets as datasets
-import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, random_split
-from torch.optim.lr_scheduler import LambdaLR
-
-import warnings
-from tqdm import tqdm
-import os
-from pathlib import Path
-
-# Huggingface datasets and tokenizers
-from datasets import load_dataset
-from tokenizers import Tokenizer
-from tokenizers.models import WordLevel
-from tokenizers.trainers import WordLevelTrainer
-from tokenizers.pre_tokenizers import Whitespace
-
-import torchmetrics
-from torch.utils.tensorboard import SummaryWriter
 
 def get_all_sentences(ds, lang):
     for item in ds:
